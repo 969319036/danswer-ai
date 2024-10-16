@@ -145,7 +145,7 @@ export const AIMessage = ({
   otherMessagesCanSwitchTo?: number[];
   onMessageSelection?: (messageId: number) => void;
   selectedDocuments?: DanswerDocument[] | null;
-  toggleDocumentSelection?: () => void;
+  toggleDocumentSelection?: (link?: string | null) => void;
   docs?: DanswerDocument[] | null;
   alternativeAssistant?: Persona | null;
   currentPersona: Persona;
@@ -256,7 +256,18 @@ export const AIMessage = ({
 
   const markdownComponents = useMemo(
     () => ({
-      a: MemoizedLink,
+      a: (props:any) => (
+        <MemoizedLink 
+          {...props} 
+          docs={docs} 
+          customProp="customValue" 
+          onClickDocTitle={(link: string) => {
+            if (toggleDocumentSelection) {
+              toggleDocumentSelection(link);
+            }
+          }} 
+        />
+      ),
       p: MemoizedParagraph,
       code: ({ node, inline, className, children, ...props }: any) => {
         const codeText = extractCodeText(
@@ -405,16 +416,30 @@ export const AIMessage = ({
                               filteredDocs.slice(0, 2).map((doc, ind) => (
                                 <div
                                   key={doc.document_id}
-                                  className={`w-[200px] rounded-lg flex-none transition-all duration-500 hover:bg-background-125 bg-text-100 px-4 pb-2 pt-1 border-b
-                              `}
+                                  className={`w-[200px] cursor-pointer rounded-lg flex-none transition-all duration-500 hover:bg-background-125 bg-text-100 px-4 pb-2 pt-1 border-b
+                                  `}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (toggleDocumentSelection) {
+                                      toggleDocumentSelection(doc.link);
+                                    }
+                                  }}
                                 >
                                   <a
-                                    href={doc.link || undefined}
-                                    target="_blank"
                                     className="text-sm flex w-full pt-1 gap-x-1.5 overflow-hidden justify-between font-semibold text-text-700"
                                     rel="noreferrer"
                                   >
-                                    <Citation link={doc.link} index={ind + 1} />
+                                    <Citation 
+                                      onClickDocTitle={(link: string | null) => {
+                                        if (toggleDocumentSelection) {
+                                          toggleDocumentSelection(link);
+                                        }
+                                      }} 
+                                      doc={doc} 
+                                      link={doc.link} 
+                                      index={ind + 1} 
+                                    />
                                     <p className="shrink truncate ellipsis break-all">
                                       {doc.semantic_identifier ||
                                         doc.document_id}
@@ -536,7 +561,7 @@ export const AIMessage = ({
                         ref={hoverElementRef}
                         className={`
                         absolute -bottom-5
-                        z-10
+                        z-2
                         invisible ${(isHovering || isRegenerateHovered || settings?.isMobile) && "!visible"}
                         opacity-0 ${(isHovering || isRegenerateHovered || settings?.isMobile) && "!opacity-100"}
                         translate-y-2 ${(isHovering || settings?.isMobile) && "!translate-y-0"}
