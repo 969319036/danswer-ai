@@ -4,7 +4,7 @@ import { ChatDocumentDisplay } from "./ChatDocumentDisplay";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { removeDuplicateDocs } from "@/lib/documentUtils";
 import { Message } from "../interfaces";
-import { ForwardedRef, forwardRef } from "react";
+import { ForwardedRef, forwardRef, useEffect, useRef, useState } from "react";
 
 interface DocumentSidebarProps {
   closeSidebar: () => void;
@@ -17,6 +17,7 @@ interface DocumentSidebarProps {
   isLoading: boolean;
   initialWidth: number;
   isOpen: boolean;
+  currentDocLink: string | null;
 }
 
 export const DocumentSidebar = forwardRef<HTMLDivElement, DocumentSidebarProps>(
@@ -32,6 +33,7 @@ export const DocumentSidebar = forwardRef<HTMLDivElement, DocumentSidebarProps>(
       isLoading,
       initialWidth,
       isOpen,
+      currentDocLink
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
@@ -41,34 +43,79 @@ export const DocumentSidebar = forwardRef<HTMLDivElement, DocumentSidebarProps>(
       selectedDocuments?.map((document) => document.document_id) || [];
 
     const currentDocuments = selectedMessage?.documents || null;
-    const dedupedDocuments = removeDuplicateDocs(currentDocuments || []);
+    const dedupedDocuments = currentDocLink 
+    ? removeDuplicateDocs(currentDocuments || []).filter((doc) => doc.link === currentDocLink) 
+    : removeDuplicateDocs(currentDocuments || []);
+    const [showIframe, setShowIframe] = useState(true);
 
+    const [width, setWidth] = useState<number>(0); 
+    const requestRef = useRef<number | null>(null); 
+
+    const animationLoop = () => {
+      setWidth((prevWidth) => {
+        if (isOpen) {
+          if (prevWidth < initialWidth) {
+            return prevWidth + 18;
+          }
+          return initialWidth;
+        } else {
+          if (prevWidth > 0) {
+            return prevWidth - 18;
+          }
+          return 0;
+        }
+      });
+  
+      if (isOpen && width < initialWidth) {
+        requestRef.current = requestAnimationFrame(animationLoop);
+      } else if (!isOpen && width > 0) {
+        requestRef.current = requestAnimationFrame(animationLoop);
+      }
+    };
+
+    useEffect(() => {
+      if (isOpen || width > 0) {
+        requestRef.current = requestAnimationFrame(animationLoop);
+      }
+  
+      return () => {
+        if (requestRef.current) {
+          cancelAnimationFrame(requestRef.current);
+        }
+      };
+    }, [isOpen, width]);
+
+    
     // NOTE: do not allow selection if less than 75 tokens are left
     // this is to prevent the case where they are able to select the doc
     // but it basically is unused since it's truncated right at the very
     // start of the document (since title + metadata + misc overhead) takes up
     // space
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
+    const finalWidth = width <= 0 ? "0px" : `${width}px`;
+    const isMdScreen = window.matchMedia("(min-width: 768px)").matches;
 
     return (
       <div
         id="danswer-chat-sidebar"
-        className={`fixed inset-0 transition-opacity duration-300 z-50 bg-black/80 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            closeSidebar();
-          }
+        className={`inset-0 fixed w-full md:static overflow-hidden ease-linear transition-[width] z-50 ${!isOpen && "pointer-events-none"}`}
+        style={{
+          width: isMdScreen ? finalWidth : '100%'
         }}
       >
         <div
-          className={`ml-auto rounded-l-lg relative border-l bg-text-100 sidebar z-50 absolute right-0 h-screen transition-all duration-300 ${
-            isOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-[10%]"
-          }`}
+         className={`ml-auto relative border-l bg-text-100 sidebar z-50  right-0 h-screen transition-all duration-300 ${
+          isOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-[10%]"
+        }`}
           ref={ref}
-          style={{
-            width: initialWidth,
-          }}
         >
+         <button 
+          onClick={() => {
+            closeSidebar();
+          }}
+          className="transition-all absolute cursor-pointer flex items-center space-x-2 hover:bg-hover hover:text-emphasis p-1.5 right-3 top-3 rounded-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
+          </button>
           <div className="pb-6 flex-initial overflow-y-hidden flex flex-col h-screen">
             {popup}
             <div className="pl-3 mx-2 pr-6 mt-3 flex text-text-800 flex-col text-2xl text-emphasis flex font-semibold">
@@ -89,34 +136,36 @@ export const DocumentSidebar = forwardRef<HTMLDivElement, DocumentSidebarProps>(
             {currentDocuments ? (
               <div className="overflow-y-auto flex-grow dark-scrollbar flex relative flex-col">
                 {dedupedDocuments.length > 0 ? (
-                  dedupedDocuments.map((document, ind) => (
-                    <div
-                      key={document.document_id}
-                      className={`${
-                        ind === dedupedDocuments.length - 1
-                          ? "mb-5"
-                          : "border-b border-border-light mb-3"
-                      }`}
-                    >
-                      <ChatDocumentDisplay
-                        document={document}
-                        setPopup={setPopup}
-                        queryEventId={null}
-                        isAIPick={false}
-                        isSelected={selectedDocumentIds.includes(
-                          document.document_id
-                        )}
-                        handleSelect={(documentId) => {
-                          toggleDocumentSelection(
-                            dedupedDocuments.find(
-                              (document) => document.document_id === documentId
-                            )!
-                          );
-                        }}
-                        tokenLimitReached={tokenLimitReached}
-                      />
-                    </div>
-                  ))
+                  <div>
+                   {dedupedDocuments.map((document, ind) => (
+                      <div
+                        key={document.document_id}
+                        className={`${
+                          ind === dedupedDocuments.length - 1
+                            ? "mb-5"
+                            : "border-b border-border-light mb-3"
+                        }`}
+                      >
+                        <ChatDocumentDisplay
+                          document={document}
+                          setPopup={setPopup}
+                          queryEventId={null}
+                          isAIPick={false}
+                          isSelected={selectedDocumentIds.includes(
+                            document.document_id
+                          )}
+                          handleSelect={(documentId) => {
+                            toggleDocumentSelection(
+                              dedupedDocuments.find(
+                                (document) => document.document_id === documentId
+                              )!
+                            );
+                          }}
+                          tokenLimitReached={tokenLimitReached}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="mx-3">
                     <Text>No documents found for the query.</Text>
@@ -145,7 +194,7 @@ export const DocumentSidebar = forwardRef<HTMLDivElement, DocumentSidebarProps>(
             </button>
 
             <button
-              className="bg-error text-xs p-2 rounded text-text-200"
+              className="bg-error text-xs p-2 rounded text-text-200 flex"
               onClick={() => {
                 clearSelectedDocuments();
 
