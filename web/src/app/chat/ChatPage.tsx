@@ -17,7 +17,6 @@ import {
   StreamingError,
   ToolCallMetadata,
 } from "./interfaces";
-
 import Prism from "prismjs";
 import Cookies from "js-cookie";
 import { HistorySidebar } from "./sessionSidebar/HistorySidebar";
@@ -1377,7 +1376,6 @@ export function ChatPage({
       });
     }
     resetRegenerationState(currentSessionId());
-
     updateChatState("input");
     if (isNewSession) {
       if (finalMessage) {
@@ -1770,6 +1768,8 @@ export function ChatPage({
     };
   }
 
+  const [currentDocLink, setCurrentDocLink] = useState<string | null>('')
+
   return (
     <>
       <HealthCheckBanner />
@@ -1864,7 +1864,7 @@ export function ChatPage({
         />
       )}
 
-      <div className="fixed inset-0 flex flex-col text-default">
+      <div className="inset-0 flex flex-col text-default flex-1">
         <div className="h-[100dvh] overflow-y-hidden">
           <div className="w-full">
             <div
@@ -1873,7 +1873,7 @@ export function ChatPage({
                 flex-none
                 fixed
                 left-0
-                z-40
+                z-10
                 bg-background-100
                 h-screen
                 transition-all
@@ -2142,9 +2142,10 @@ export function ChatPage({
                                       }}
                                       isActive={messageHistory.length - 1 == i}
                                       selectedDocuments={selectedDocuments}
-                                      toggleDocumentSelection={
-                                        toggleDocumentSelectionAspects
-                                      }
+                                      toggleDocumentSelection={(link: string | null = null) => {
+                                        toggleDocumentSelectionAspects()
+                                        setCurrentDocLink(link ?? null)
+                                      }}
                                       docs={message.documents}
                                       currentPersona={liveAssistant}
                                       alternativeAssistant={
@@ -2395,7 +2396,7 @@ export function ChatPage({
                         </div>
                         <div
                           ref={inputRef}
-                          className="absolute bottom-0 z-10 w-full"
+                          className="absolute bottom-0 z-2 w-full"
                         >
                           <div className="w-[95%] mx-auto relative mb-8">
                             {aboveHorizon && (
@@ -2497,6 +2498,7 @@ export function ChatPage({
         maxTokens={maxTokens}
         isLoading={isFetchingChatMessages}
         isOpen={documentSelection}
+        currentDocLink={currentDocLink}
       />
     </>
   );
