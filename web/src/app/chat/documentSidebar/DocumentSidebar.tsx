@@ -46,7 +46,6 @@ export const DocumentSidebar = forwardRef<HTMLDivElement, DocumentSidebarProps>(
     const dedupedDocuments = currentDocLink 
     ? removeDuplicateDocs(currentDocuments || []).filter((doc) => doc.link === currentDocLink) 
     : removeDuplicateDocs(currentDocuments || []);
-    const [showIframe, setShowIframe] = useState(true);
 
     const [width, setWidth] = useState<number>(0); 
     const requestRef = useRef<number | null>(null); 

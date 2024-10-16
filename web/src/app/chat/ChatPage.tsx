@@ -1747,9 +1747,11 @@ export function ChatPage({
     setSharedChatSession(chatSession);
   };
   const [documentSelection, setDocumentSelection] = useState(false);
-  const toggleDocumentSelectionAspects = () => {
-    setDocumentSelection((documentSelection) => !documentSelection);
-    setShowDocSidebar(false);
+  const toggleDocumentSelectionAspects = (link: string | null) => {
+    if (!!link === !!currentDocLink) {
+      setDocumentSelection((documentSelection) => !documentSelection);
+      setShowDocSidebar(false);
+    }
   };
 
   interface RegenerationRequest {
@@ -2143,7 +2145,7 @@ export function ChatPage({
                                       isActive={messageHistory.length - 1 == i}
                                       selectedDocuments={selectedDocuments}
                                       toggleDocumentSelection={(link: string | null = null) => {
-                                        toggleDocumentSelectionAspects()
+                                        toggleDocumentSelectionAspects(link)
                                         setCurrentDocLink(link ?? null)
                                       }}
                                       docs={message.documents}
