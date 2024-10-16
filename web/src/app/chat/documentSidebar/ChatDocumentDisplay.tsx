@@ -39,9 +39,9 @@ export function ChatDocumentDisplay({
   return (
     <div
       key={document.semantic_identifier}
-      className={`p-2 w-[325px] justify-start rounded-md ${
+      className={`p-2 w-full justify-start rounded-md ${
         isSelected ? "bg-background-200" : "bg-background-125"
-      } text-sm mx-3`}
+      } text-sm`}
     >
       <div className="flex relative justify-start overflow-y-visible">
         <a
@@ -91,7 +91,6 @@ export function ChatDocumentDisplay({
                 rounded
                 p-0.5
                 w-fit
-                my-auto
                 select-none
                 my-auto
                 mr-2`}
@@ -114,9 +113,9 @@ export function ChatDocumentDisplay({
           <DocumentMetadataBlock document={document} />
         </div>
       </div>
-      <p className="line-clamp-3 pl-1 pt-2 mb-1 text-start break-words">
+      <p className="pl-1 pt-2 mb-1 text-start break-words">
         {buildDocumentSummaryDisplay(document.match_highlights, document.blurb)}
-        test
+        {/* test */}
       </p>
       <div className="mb-2">
         {/* 
